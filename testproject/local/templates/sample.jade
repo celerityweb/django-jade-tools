@@ -1,0 +1,34 @@
+doctype html
+html
+    head
+        title Test Page for django-jade-tools
+    body
+        h1 Here goes!
+        {% if user.is_authenticated %}
+        p You are logged in as user {{ user.username }}
+        {% else %}
+        p You are not logged in.
+        {% endif %}
+        {% for knight_of_the_round_table in knights %}
+        h2 Answer me these questions three
+        dl
+            dt What is your name?
+                dd {{ knight_of_the_round_table.name }}
+            dt What is your quest?
+                dd {{ knight_of_the_round_table.quest }}
+            {% if knight_of_the_round_table.name == 'Robin' %}
+            dt What is the capital of Assyria?
+                dd {{ knight_of_the_round_table.final_answer }} Waaaaaaa!!!.....
+            {% elif knight_of_the_round_table.name == 'Arthur' %}
+            dt What is the air-speed velocity of an unladen swallow?
+                dd {{ knight_of_the_round_table.final_answer }}
+            {% else %}
+            dt What is your favorite color?
+                {% if knight_of_the_round_name.name == 'Lancelot' %}
+                dd {{ knight_of_the_round_table.final_answer }} - OK, you can go.
+                {% else %}
+                dd {{ knight_of_the_round_table.final_answer }} - Waaaaaaa!!!!!
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        p That's it. End of show.
