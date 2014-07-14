@@ -31,4 +31,9 @@ html
                 {% endif %}
             {% endif %}
         {% endfor %}
+        p
+            | This is a
+            a(href="{% url 'admin:index' %}") link to the admin
+            | and this is a
+            a(href="{% url 'test_link' foo='bar' baz=1 %}") a link to a static page.
         p That's it. End of show.

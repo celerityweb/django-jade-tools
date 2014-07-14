@@ -6,6 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
+import json
 from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
@@ -38,7 +39,9 @@ class Command(BaseCommand):
             raise CommandError('Invalid template path specified.')
         if url_map and not os.path.exists(url_map):
             raise CommandError('No such URL map at that path.')
-        compiler_obj = compiler.DjangoJadeCompiler(template_path, url_map)
+        compiler_obj = compiler.DjangoJadeCompiler(template_path,
+                                                   json.load(open(url_map)))
+        compiler_obj.preempt_url_patterns()
         for tmpl_data in compiler_obj.find_compileable_jade_templates():
             logger.debug('Template data: %s', tmpl_data)
             html = compiler_obj.render_jade_with_json(**tmpl_data)

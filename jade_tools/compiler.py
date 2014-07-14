@@ -10,6 +10,7 @@ import json
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
+from django.core import urlresolvers
 from django.template import loader, RequestContext
 from django.test import RequestFactory
 
@@ -19,6 +20,15 @@ class DjangoJadeCompiler(object):
     def __init__(self, template_path, url_map):
         self.template_path = template_path
         self.url_map = url_map
+
+    def preempt_url_patterns(self):
+        # Monkeypatch reverse for a clickable static demo
+        super_reverse = urlresolvers.reverse
+        def reverse(viewname, **kwargs):
+            if viewname in self.url_map:
+                return self.url_map[viewname]
+            return super_reverse(viewname, **kwargs)
+        urlresolvers.reverse = reverse
 
     def find_compileable_jade_templates(self):
         for path, dirs, files in os.walk(self.template_path):
