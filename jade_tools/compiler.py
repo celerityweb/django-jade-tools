@@ -25,12 +25,30 @@ class DjangoJadeCompiler(object):
         # Monkeypatch reverse for a clickable static demo
         super_reverse = urlresolvers.reverse
         def reverse(viewname, **kwargs):
+            # Django rules say args or kwargs, not both
+            view_args = kwargs.get('args')
+            view_kwargs = kwargs.get('kwargs')
+            # FIXME: I don't have a good solution for handling kwargs yet...
+            if view_kwargs:
+                raise NotImplementedError, "Reversing urlpatterns with kwargs " \
+                                           "is not supported yet by " \
+                                           "django-jade-tools"
+            view_args = list(view_args)  # Use a copy of the original view args
             if viewname in self.url_map:
-                return self.url_map[viewname]
+                url_mapped_view = self.url_map[viewname]
+                while not isinstance(url_mapped_view, basestring):
+                    next_arg = view_args.pop(0)
+                    if unicode(next_arg) in url_mapped_view:
+                        url_mapped_view = url_mapped_view[unicode(next_arg)]
+                    elif '__default__' in url_mapped_view:
+                        url_mapped_view = url_mapped_view['__default__']
+                    else:
+                        return super_reverse(viewname, **kwargs)
+                return url_mapped_view
             return super_reverse(viewname, **kwargs)
         urlresolvers.reverse = reverse
 
-    def find_compileable_jade_templates(self):
+    def find_compilable_jade_templates(self):
         for path, dirs, files in os.walk(self.template_path):
             logger.debug('Looking for jade templates in %s', path)
             for jade_file in files:

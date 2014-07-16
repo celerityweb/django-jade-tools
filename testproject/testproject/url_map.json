@@ -1,3 +1,10 @@
 {
-    "test_link": "./other-page.html"
+    "test_link": "./other-page.html",
+    "nested_test_link": {
+        "foo": {
+            "3": "./nested.html",
+            "__default__": "./default.html"
+        },
+        "__default__": "./default.html"
+    }
 }

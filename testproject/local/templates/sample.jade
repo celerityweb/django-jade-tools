@@ -35,5 +35,10 @@ html
             | This is a
             a(href="{% url 'admin:index' %}") link to the admin
             | and this is a
-            a(href="{% url 'test_link' foo='bar' baz=1 %}") a link to a static page.
+            a(href="{% url 'test_link' 'bar' 1 %}") a link to a static page.
+        p
+            | Now to test nested URL maps. This should be
+            a(href="{% url 'nested_test_link' 'foo' 3 %}") an override
+            | but this should be
+            a(href="{% url 'nested_test_link' 'bar' 12 %}") a default
         p That's it. End of show.
