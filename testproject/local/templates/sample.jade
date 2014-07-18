@@ -1,7 +1,4 @@
-doctype html
-html
-    head
-        title Test Page for django-jade-tools
+include _htmlhead
     body
         h1 Here goes!
         {% if user.is_authenticated %}
@@ -41,4 +38,5 @@ html
             a(href="{% url 'nested_test_link' 'foo' 3 %}") an override
             | but this should be
             a(href="{% url 'nested_test_link' 'bar' 12 %}") a default
+        include _included
         p That's it. End of show.
