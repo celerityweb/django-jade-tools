@@ -88,22 +88,31 @@ class DjangoJadeCompiler(object):
         match = self.INCLUDE_RE.search(template_src)
         while match:
             base_indent, included_path = match.groups()
+            included_path = os.path.normpath(
+                os.path.join(os.getcwd(), included_path)).strip()
             logger.debug('Found include statement: base indent is "%s" and '
-                         'included path is %s', base_indent, included_path)
+                         'included path is %s; pwd is %s', base_indent,
+                         included_path, os.getcwd())
             if os.path.exists(included_path):
                 included_src = open(included_path, 'r').read()
             elif os.path.exists("%s.jade" % included_path):
                 included_src = open("%s.jade" % included_path, 'r').read()
             else:
                 raise Exception("Include path doesn't exists")
+            included_src = included_src.decode('utf8')
             if self.INCLUDE_RE.search(included_src):
                 current_pwd = os.getcwd()
-                os.chdir(os.path.dirname('./'+included_src))
+                logger.debug('Current working dir is %s - '
+                             'changing relative to template', current_pwd)
+                os.chdir(os.path.dirname(included_path))
+                logger.debug('Now in %s to process %s', os.getcwd(),
+                             included_path)
                 included_src = self.preprocess_includes(included_src)
                 os.chdir(current_pwd)
+                logger.debug('Now back in %s', current_pwd)
             template_src = (
                 template_src[0:match.start()] + base_indent +
-                included_src.replace('\n', '\n'+base_indent).rstrip() +
+                included_src.replace(u'\n', u'\n'+base_indent).rstrip() +
                 template_src[match.end():]
             )
             match = self.INCLUDE_RE.search(template_src)
@@ -124,16 +133,28 @@ class DjangoJadeCompiler(object):
             jade_template_path)
         if self.INCLUDE_RE.search(tmpl_src):
             tmpl_src = self.preprocess_includes(tmpl_src)
+        # WHITESPACE! HUH! WHAAAAT IS IT GOOD FOR? ABSOLUTELY NOTHING!
+        tmpl_src = u'\n'.join([line for line in tmpl_src.split('\n')
+                               if line.strip()])
         origin = loader.make_origin(display_name,
                                     jade_loader.load_template_source,
                                     jade_template_path, None)
-        compiled_jade = process(tmpl_src, filename=jade_template_path,
-                                compiler=Compiler)
-        tmpl = loader.get_template_from_string(compiled_jade, origin,
-                                               jade_template_path)
         if settings.DEBUG:
             logger.debug(
-                'Template is: %s', tmpl_src)
+                'Template is: \n%s',
+                '\n'.join(['%4d: %s' % (i, s)
+                           for i, s in enumerate(tmpl_src.split('\n'))]))
+        compiled_jade = process(tmpl_src, filename=jade_template_path,
+                                compiler=Compiler)
+        try:
+            tmpl = loader.get_template_from_string(compiled_jade, origin,
+                                                   jade_template_path)
+        except Exception, e:
+            logger.exception('Failed to compile Jade-derived HTML template:')
+            logger.exception(
+                '\n'.join(['%4d: %s' % (i, s)
+                           for i, s in enumerate(compiled_jade.split('\n'))]))
+            raise
         # We need to simulate request middleware but without short-circuiting
         # the response
         request_factory = RequestFactory()
