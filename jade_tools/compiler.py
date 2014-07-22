@@ -12,6 +12,7 @@ import json
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core import urlresolvers
+from django.db.models import get_app
 from django.template import loader, RequestContext
 from django.test import RequestFactory
 
@@ -25,11 +26,14 @@ class DjangoJadeCompiler(object):
         r'^(?P<indent>[\t ]*)include +(?P<included>[^ ]+) *$',
         re.MULTILINE)
 
-    def __init__(self, template_path, url_map):
-        self.template_path = template_path
-        self.url_map = url_map
+    def __init__(self, app, url_map=None, base_context=None):
+        self.app = app
+        self.template_path = os.path.join(
+            os.path.dirname(get_app(app).__file__), 'jade_templates')
+        self.base_context = base_context
 
-    def preempt_url_patterns(self):
+    @classmethod
+    def preempt_url_patterns(cls, url_map):
         # Monkeypatch reverse for a clickable static demo
         super_reverse = urlresolvers.reverse
         def reverse(viewname, **kwargs):
@@ -42,8 +46,8 @@ class DjangoJadeCompiler(object):
                                            "is not supported yet by " \
                                            "django-jade-tools"
             view_args = list(view_args)  # Use a copy of the original view args
-            if viewname in self.url_map:
-                url_mapped_view = self.url_map[viewname]
+            if viewname in url_map:
+                url_mapped_view = url_map[viewname]
                 while not isinstance(url_mapped_view, basestring):
                     next_arg = view_args.pop(0)
                     if unicode(next_arg) in url_mapped_view:
@@ -61,7 +65,7 @@ class DjangoJadeCompiler(object):
             logger.debug('Looking for jade templates in %s', path)
             for jade_file in files:
                 # If we've got a .jade file with a corresponding .json file,
-                # render it.
+                # it is compilable.
                 if not jade_file.endswith('.jade'):
                     logger.debug('Skipping %s - not a .jade file', jade_file)
                     continue
@@ -71,17 +75,13 @@ class DjangoJadeCompiler(object):
                     logger.debug('Skipping %s - no corresponding json file %s',
                                  jade_file, json_file)
                     continue
-                json_file_path = os.path.join(path,
-                                              json_file)
                 template_path_base = os.path.relpath(path,
                                                      start=self.template_path)
                 if template_path_base == '.':
                     template_path_base = ''
-                jade_template_path = os.path.join(template_path_base, jade_file)
-                yield {'base_file': base_file,
-                       'json_file_path': json_file_path,
-                       'template_path_base': template_path_base,
-                       'jade_template_path': jade_template_path}
+                yield {'base_file_name': base_file,
+                       'path': path,
+                       'template_path': template_path_base}
 
     def preprocess_includes(self, template_src):
         # Can't do finditer() here because the indices of matches change
@@ -119,18 +119,18 @@ class DjangoJadeCompiler(object):
         return template_src
 
 
-    def render_jade_with_json(self, jade_template_path, json_file_path,
-                              template_path_base, base_file):
+    def compile(self, base_file_name, path, template_path):
+        jade_template_path = os.path.join(template_path,
+                                          '%s.jade' % (base_file_name,))
         logger.debug('Working with jade template %s', jade_template_path)
         # Change the pwd to the template's location
         current_pwd = os.getcwd()
-        os.chdir(os.path.join(self.template_path, template_path_base))
+        os.chdir(path)
         # Hackery to allow for pre-processing the jade source
         jade_loader = Loader(
-            ('django.template.loaders.filesystem.Loader',
-             'django.template.loaders.app_directories.Loader'))
+            ('django.template.loaders.filesystem.Loader',))
         tmpl_src, display_name = jade_loader.load_template_source(
-            jade_template_path)
+            jade_template_path, [self.template_path,])
         if self.INCLUDE_RE.search(tmpl_src):
             tmpl_src = self.preprocess_includes(tmpl_src)
         # WHITESPACE! HUH! WHAAAAT IS IT GOOD FOR? ABSOLUTELY NOTHING!
@@ -155,11 +155,19 @@ class DjangoJadeCompiler(object):
                 '\n'.join(['%4d: %s' % (i, s)
                            for i, s in enumerate(compiled_jade.split('\n'))]))
             raise
+        os.chdir(current_pwd)
+        return compiled_jade
+
+    def mock(self, base_file_name, path, template_path):
+        html_template_path = os.path.join(self.app.replace('.', '/'),
+                                          template_path,
+                                          '%s.html' % (base_file_name,))
+        json_file_path = os.path.join(path, '%s.json' % (base_file_name,))
+        tmpl = loader.get_template(html_template_path)
         # We need to simulate request middleware but without short-circuiting
         # the response
         request_factory = RequestFactory()
-        req = request_factory.get('/%s/%s.html' % (template_path_base,
-                                                   base_file),
+        req = request_factory.get('/%s' % (html_template_path,),
                                   data={})
         handler = WSGIHandler()
         handler.load_middleware()
@@ -167,9 +175,9 @@ class DjangoJadeCompiler(object):
             middleware_method(req)
         # Render the template with a RequestContext
         ctx = RequestContext(req,
-                             json.load(open(os.path.basename(json_file_path))))
-        # Change the pwd back
-        os.chdir(current_pwd)
+                             json.load(open(json_file_path)))
+        logger.debug('Updating context with base context %s', self.base_context)
+        ctx.update(self.base_context)
         return tmpl.render(ctx)
 
 
