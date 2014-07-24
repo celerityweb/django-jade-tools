@@ -160,7 +160,6 @@ class DjangoJadeCompiler(object):
 
     def mock(self, base_file_name, path, template_path):
         html_template_path = os.path.join(self.app.replace('.', '/'),
-                                          template_path,
                                           '%s.html' % (base_file_name,))
         json_file_path = os.path.join(path, '%s.json' % (base_file_name,))
         tmpl = loader.get_template(html_template_path)
