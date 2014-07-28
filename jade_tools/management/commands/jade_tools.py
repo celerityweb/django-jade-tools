@@ -11,7 +11,7 @@ from optparse import make_option
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.core.files.storage import default_storage
+from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
 from django.db.models import get_app
 
@@ -104,7 +104,8 @@ class Command(BaseCommand):
                                          tmpl_data['template_path'],
                                          '%s.html' % tmpl_data['base_file_name'])
                 logger.info('Saving HTML file %s', html_path)
-                default_storage.save(html_path, faux_file)
+                storage_obj = FileSystemStorage(location=settings.STATIC_ROOT)
+                storage_obj.save(html_path, faux_file)
 
     def handle(self, *args, **options):
         if len(args) != 1:
