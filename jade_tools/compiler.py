@@ -141,8 +141,8 @@ class DjangoJadeCompiler(object):
                                     jade_template_path, None)
         if settings.DEBUG:
             logger.debug(
-                'Template is: \n%s',
-                '\n'.join(['%4d: %s' % (i, s)
+                u'Template is: \n%s',
+                u'\n'.join(['%4d: %s' % (i, s)
                            for i, s in enumerate(tmpl_src.split('\n'))]))
         compiled_jade = process(tmpl_src, filename=jade_template_path,
                                 compiler=Compiler)
@@ -152,8 +152,8 @@ class DjangoJadeCompiler(object):
         except Exception, e:
             logger.exception('Failed to compile Jade-derived HTML template:')
             logger.exception(
-                '\n'.join(['%4d: %s' % (i, s)
-                           for i, s in enumerate(compiled_jade.split('\n'))]))
+                u'\n'.join(['%4d: %s' % (i, s)
+                           for i, s in enumerate(compiled_jade.split(u'\n'))]))
             raise
         os.chdir(current_pwd)
         return compiled_jade

@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     os.makedirs(html_path)
                 open(os.path.join(html_path,
                                   '%s.html' % (tmpl_data['base_file_name'],)),
-                     'w').write(html)
+                     'w').write(html.encode('utf8') if isinstance(html, unicode) else html)
 
     def handle_mock(self, app, url_map, output_prefix, base_context,
                     **other_options):
