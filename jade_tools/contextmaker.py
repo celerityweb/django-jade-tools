@@ -62,8 +62,8 @@ class ContextMaker(object):
 
     def serialize_iterable(self, list_, depth):
         if depth:
-            [self.serialize_foo(item, depth-1)
-             for item in itertools.islice(list_, 0, self.max_length)]
+            return [self.serialize_foo(item, depth-1)
+                    for item in itertools.islice(list_, 0, self.max_length)]
         else:
             return [repr_maybe(item)
                     for item in itertools.islice(list_, 0, self.max_length)]
