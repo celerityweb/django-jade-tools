@@ -20,6 +20,20 @@ from pyjade.ext.django.loader import Loader
 from pyjade.ext.django.compiler import Compiler
 from pyjade.utils import process
 
+class DictWithSpecialUnicode(dict):
+    def __unicode__(self):
+        if "" in self:
+            return unicode(self[""])
+        else:
+            return unicode(dict(self))
+
+    def __repr__(self):
+        if "" in self:
+            return repr(self[""])
+        else:
+            return repr(dict(self))
+
+
 class DjangoJadeCompiler(object):
 
     INCLUDE_RE = re.compile(
@@ -190,14 +204,10 @@ class DjangoJadeCompiler(object):
         for middleware_method in handler._request_middleware:
             middleware_method(req)
         # Render the template with a RequestContext
-        ctx = RequestContext(req,
-                             json.load(open(json_file_path)))
+        ctx = RequestContext(
+            req,
+            json.load(open(json_file_path),
+                      object_hook=lambda d: DictWithSpecialUnicode(d)))
         logger.debug('Updating context with base context %s', self.base_context)
         ctx.update(self.base_context)
         return tmpl.render(ctx)
-
-
-
-
-
-
