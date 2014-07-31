@@ -77,22 +77,22 @@ class ContextMaker(object):
                     for key, value in dict.iteritems()}
 
     def serialize_object(self, obj, depth):
-        logger.debug("#####")
-        logger.debug('%s %s', type(obj), obj)
+        # logger.debug("#####")
+        # logger.debug('%s %s', type(obj), obj)
         to_return = {"": unicode(obj)}
         for attrname in [a for a in dir(obj) if not a.startswith('_')]:
-            logger.debug('attrname is %s', attrname)
+            # logger.debug('attrname is %s', attrname)
             try:
                 attr = getattr(obj, attrname)
             except AttributeError:
                 continue
-            logger.debug('attr is %s %s', type(attr), attr)
+            # logger.debug('attr is %s %s', type(attr), attr)
             if not depth:
                 to_return[attrname] = repr_maybe(attr)
                 continue
             # only argumentless methods are allowed
             if isinstance(attr, type(self.serialize_object)):
-                logger.debug('instancemethod')
+                # logger.debug('instancemethod')
                 # Common exceptions
                 if (isinstance(obj, models.Model) and
                             attrname in ('save', 'delete', 'save_base',
@@ -100,15 +100,15 @@ class ContextMaker(object):
                                          'full_clean')):
                     continue
                 argspec = inspect.getargspec(attr)
-                logger.debug('%s', argspec)
+                # logger.debug('%s', argspec)
                 args, defaults = argspec.args, argspec.defaults
                 if args and args[0] == 'self':
                     # this should always be the case.
                     args.pop(0)
-                logger.debug('%s %s', args, defaults)
+                # logger.debug('%s %s', args, defaults)
                 if args and (not defaults or len(defaults) < len(args)):
                     # This function requires arguments
-                    logger.debug('requires args')
+                    # logger.debug('requires args')
                     continue
                 try:
                     to_return[attrname] = self.serialize_foo(attr(),
@@ -116,7 +116,7 @@ class ContextMaker(object):
                 except Exception, e:
                     to_return[attrname] = repr_maybe(e)
             else:
-                logger.debug('not instancemethod')
+                # logger.debug('not instancemethod')
                 to_return[attrname] = self.serialize_foo(attr, depth-1)
         if len(to_return) == 1:
             return to_return.values()[0]
