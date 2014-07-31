@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import sys
 import os
 import json
 from optparse import make_option
@@ -13,9 +14,10 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
+from django.core.serializers.json import DateTimeAwareJSONEncoder
 from django.db.models import get_app
 
-from jade_tools import compiler
+from jade_tools import compiler, contextmaker
 
 class Command(BaseCommand):
     args = '<subcommand>'
@@ -51,6 +53,41 @@ class Command(BaseCommand):
             dest='output_prefix',
             default='',
             help='A path stub to prepend to outputted HTML files during mocking'
+        ),
+        make_option(
+            '--view-name',
+            action='store',
+            dest='view_name',
+            default='',
+            help='The name of the URL pattern or view function to inspect '
+                 'when generating static context files'
+        ),
+        make_option(
+            '--view-args',
+            action='store',
+            dest='view_args',
+            default='',
+            help='Comma-delimited arguments to pass to the URL pattern lookup '
+                 'when generating static context files',
+        ),
+        make_option(
+            '--max-depth',
+            action='store',
+            dest='max_depth',
+            default=3,
+            type=int,
+            help='The max depth to explore context objects when generating '
+                 'static context files'
+        ),
+        make_option(
+            '--max-items',
+            action='store',
+            dest='max_items',
+            default=10,
+            type=int,
+            help='In lists and other unmapped iterables, the maximum number of '
+                 'objects per iterable to include when generating static '
+                 'context files'
         )
     )
 
@@ -106,6 +143,18 @@ class Command(BaseCommand):
                 logger.info('Saving HTML file %s', html_path)
                 storage_obj = FileSystemStorage(location=settings.STATIC_ROOT)
                 storage_obj.save(html_path, faux_file)
+
+    def handle_make_context(self, view_name, view_args, max_depth, max_items,
+                            **other_options):
+        args = view_args.split(',')
+        maker = contextmaker.ContextMaker(view_name, args,
+                                          max_depth=max_depth,
+                                          max_length=max_items)
+        sys.stdout.write(json.dumps(
+            maker.generate_context(),
+            cls=DateTimeAwareJSONEncoder,
+            indent=4
+        ).encode('utf-8'))
 
     def handle(self, *args, **options):
         if len(args) != 1:
