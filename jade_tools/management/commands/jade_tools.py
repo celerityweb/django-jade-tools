@@ -96,7 +96,7 @@ class Command(BaseCommand):
                 app,
                 base_context=(json.load(open(base_context))
                               if base_context else {}))
-            for tmpl_data in compiler_obj.find_compilable_jade_templates():
+            for tmpl_data in compiler_obj.find_compilable_jade_templates(standalone=False):
                 logger.debug('Template data: %s', tmpl_data)
                 html = compiler_obj.mock(**tmpl_data)
                 faux_file = ContentFile(html)

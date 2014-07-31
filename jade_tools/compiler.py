@@ -60,7 +60,15 @@ class DjangoJadeCompiler(object):
             return super_reverse(viewname, **kwargs)
         urlresolvers.reverse = reverse
 
-    def find_compilable_jade_templates(self):
+    def find_compilable_jade_templates(self, standalone=True):
+        if standalone:
+            standalone_file = os.path.join(self.template_path, 'standalone.txt')
+            standalone_paths = []
+            if os.path.exists(standalone_file):
+                logger.debug('Loading standalone paths...')
+                standalone_txt = open(standalone_file).read().strip()
+                for line in standalone_txt.split('\n'):
+                    standalone_paths.append(line.strip())
         for path, dirs, files in os.walk(self.template_path):
             logger.debug('Looking for jade templates in %s', path)
             for jade_file in files:
@@ -69,14 +77,23 @@ class DjangoJadeCompiler(object):
                 if not jade_file.endswith('.jade'):
                     logger.debug('Skipping %s - not a .jade file', jade_file)
                     continue
+                template_path_base = os.path.relpath(path,
+                                                     start=self.template_path)
                 base_file, _ = os.path.splitext(jade_file)
                 json_file = '%s.json' % base_file
                 if json_file not in files:
-                    logger.debug('Skipping %s - no corresponding json file %s',
-                                 jade_file, json_file)
-                    continue
-                template_path_base = os.path.relpath(path,
-                                                     start=self.template_path)
+                    if standalone:
+                        if not any([os.path.commonprefix([template_path_base,
+                                                          standalone_path])
+                                    for standalone_path in standalone_paths]):
+                            logger.debug('Skipping %s - no corresponding json '
+                                         'file %s and not in standalone paths',
+                                         jade_file, json_file)
+                            continue
+                    else:
+                        logger.debug('Skipping %s - no corresponding json file %s',
+                                     jade_file, json_file)
+                        continue
                 if template_path_base == '.':
                     template_path_base = ''
                 yield {'base_file_name': base_file,
