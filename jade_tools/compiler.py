@@ -97,9 +97,11 @@ class DjangoJadeCompiler(object):
                 json_file = '%s.json' % base_file
                 if json_file not in files:
                     if standalone:
-                        if not any([os.path.commonprefix([template_path_base,
-                                                          standalone_path])
-                                    for standalone_path in standalone_paths]):
+                        if not any(
+                                [os.path.commonprefix(
+                                        [template_path_base,
+                                         standalone_path]) == template_path_base
+                                 for standalone_path in standalone_paths]):
                             logger.debug('Skipping %s - no corresponding json '
                                          'file %s and not in standalone paths',
                                          jade_file, json_file)
