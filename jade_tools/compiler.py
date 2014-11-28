@@ -37,7 +37,7 @@ class DictWithSpecialUnicode(dict):
 class DjangoJadeCompiler(object):
 
     INCLUDE_RE = re.compile(
-        r'^(?P<indent>[\t ]*)include +(?P<included>[^ ]+) *$',
+        r'^(?P<indent>[\t ]*)include +(?P<included>\S+) *$',
         re.MULTILINE)
 
     def __init__(self, app, url_map=None, base_context=None):
